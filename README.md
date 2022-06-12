@@ -94,4 +94,12 @@ Step 1. Ensure that your ApacheMQ and application are running.
 
 Step 2. Add order via web app for book starts with 'L'
 
-Step 3. Check in the ApacheMQ dashboard, you'll see the following screenshot
+Step 3. Check in the ApacheMQ dashboard, you'll see the following screenshots
+
+![image](https://user-images.githubusercontent.com/1523220/173228555-dd7d1c90-98e7-4c4c-ae9b-24df73efb93e.png)
+
+![image](https://user-images.githubusercontent.com/1523220/173228568-aeb231a0-7a6e-401d-9213-c8486d95dc47.png)
+
+![image](https://user-images.githubusercontent.com/1523220/173228581-947a8628-6f1b-42a8-9839-5887154576b7.png)
+
+
