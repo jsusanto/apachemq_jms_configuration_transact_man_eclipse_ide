@@ -3,6 +3,7 @@ package com.linkedinjms.chapter4.service.jms;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.linkedinjms.chapter4.pojos.BookOrder;
 import com.linkedinjms.chapter4.pojos.ProcessedBookOrder;
@@ -16,6 +17,7 @@ public class WarehouseProcessingService {
     @Autowired
     private JmsTemplate jmsTemplate;
 
+    @Transactional
     public void processOrder(BookOrder bookOrder){
         ProcessedBookOrder order = new ProcessedBookOrder(
                 bookOrder,

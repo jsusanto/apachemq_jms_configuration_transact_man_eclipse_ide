@@ -5,6 +5,8 @@ import java.awt.List;
 import javax.jms.ConnectionFactory;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +25,20 @@ import org.springframework.jms.support.converter.MarshallingMessageConverter;
 import org.springframework.jms.support.converter.MessageConverter;
 import org.springframework.jms.support.converter.MessageType;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import com.linkedinjms.chapter4.listener.BookOrderProcessingMessageListener;
 import com.linkedinjms.chapter4.pojos.Book;
 import com.linkedinjms.chapter4.pojos.BookOrder;
 import com.linkedinjms.chapter4.pojos.Customer;
 
+@EnableTransactionManagement
 // Add annotation EnableJms, so the JmsListener will be picked up.
 @EnableJms
 //Add the annotation below so that Spring will know that this is part of configuration
 @Configuration
 public class JmsConfig implements JmsListenerConfigurer{
+	private static final Logger LOGGER = LoggerFactory.getLogger(JmsConfig.class);
 	
 	//Using SingleConnectionFactory approach
 	@Value("${spring.activemq.broker-url}")
@@ -104,6 +109,10 @@ public class JmsConfig implements JmsListenerConfigurer{
 		
 		//Turn on/off if you want to use JSON file format
 		factory.setMessageConverter(jacksonJmsMessageConverter());
+		factory.setTransactionManager(jmsTransactionManager());
+		factory.setErrorHandler(t -> {
+			LOGGER.info("Handling error in listener for messages, error: " + t.getMessage());
+		});
 		
 		return factory;
 	}
@@ -134,4 +143,25 @@ public class JmsConfig implements JmsListenerConfigurer{
 		return new BookOrderProcessingMessageListener();
 	}
 	//********************************************************************************
+
+	@Bean
+	public PlatformTransactionManager jmsTransactionManager() {
+		return new JmsTransactionManager(connectionFactory());
+	}
+	
+	@Bean
+	public JmsTemplate jmsTemplate() {
+		JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory());
+		
+		// Ensure JmsTemplate is using the message converter
+		jmsTemplate.setMessageConverter(jacksonJmsMessageConverter());
+		
+		// Ensure message is persistence
+		jmsTemplate.setDeliveryPersistent(true);
+		
+		// Ensure the force of usage Transaction Management
+		jmsTemplate.setSessionTransacted(true);
+		
+		return jmsTemplate;
+	}
 }

@@ -56,85 +56,42 @@ WarehouseProcessingService sends to book.order.processed.queue and we set up syn
 In addition to the info above, we want to change all the hardcoded configuration to the proper configuration method 
 using application.yml or application.properties
 
-To use SingleConnectionFactory Approach --> JmsConfig.java
-<b> SingleConnectionFactory</b>
-- Returns the same Connection from all createConnection() calls
-- Ignores calls to Connection.close()
-- Is thread-safe compared to JDBC calls
-- Shared connections can be recovered in case of exceptions.
-  This is done updating setReconnectOnException(true).
-  
-  ```
-  //Using SingleConnectionFactory approach
-	@Value("${spring.activemq.broker-url}")
-	private String brokerUrl;
-	
-	@Value("${spring.activemq.user}")
-	private String user;
-	
-	@Value("${spring.activemq.password}")
-	private String password;
-	.
-	.
-	.
-	.
-	//comment out the previous connection and add the new one
-	
-	/*
-	@Bean
-	public ActiveMQConnectionFactory connectionFactory(){
-		ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("admin","admin","tcp://localhost:61616");
-		return factory;
-	}
-	*/
-	@Bean
-	public SingleConnectionFactory connectionFactory(){
-		
-		ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(user, password, brokerUrl);
-		SingleConnectionFactory singleConnectionFactory = new SingleConnectionFactory(factory); 
-		singleConnectionFactory.setReconnectOnException(true);
-		singleConnectionFactory.setClientId("myclientId");
-		return singleConnectionFactory;
-	}
-  ```
+<b>Transaction Management with Spring JMS</b>
+By having this you can rollback if it fails to send.
 
-  <b>CachingConnectionFactory</b>
-- Returns same connection from createConnection() calls
-- Ignores calls to Connection.close()
-- Is thread-safe compared to JDBC calls
-- Default setReconnectOnException(true)
+How to?
+Step 1. Add PlatformTransactionManager method in JmsConfig.java
 
 ```
-  //Using CachingConnectionFactory approach
-	@Value("${spring.activemq.broker-url}")
-	private String brokerUrl;
-	
-	@Value("${spring.activemq.user}")
-	private String user;
-	
-	@Value("${spring.activemq.password}")
-	private String password;
-	.
-	.
-	.
-	.
-	//comment out the previous connection and add the new one
-	
-	/*
 	@Bean
-	public ActiveMQConnectionFactory connectionFactory(){
-		ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("admin","admin","tcp://localhost:61616");
-		return factory;
+	public PlatformTransactionManager jmsTransactionManager() {
+		return new JmsTransactionManager(connectionFactory());
 	}
-	*/
-	// CachingConnectionFactory approach
-	@Bean
-	public CachingConnectionFactory connectionFactory(){
-		ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(user, password, brokerUrl);
-		CachingConnectionFactory cacheConnectionFactory = new CachingConnectionFactory(factory);
-		cacheConnectionFactory.setClientId("StoreFront");
-		cacheConnectionFactory.setSessionCacheSize(100); //use anything more than 1
-		return cacheConnectionFactory;
+```
+
+Step 2. Add @EnableTransactionManagement annotation on the top of JmsConfig.java class
+```
+@EnableTransactionManagement
+@EnableJms
+@Configuration
+public class JmsConfig implements JmsListenerConfigurer{
+```
+
+Step 3. Add @Transactional annotation on all sender services (Sender.java, BookOrderService.java)
+
+```
+  @Transactional
+	public void send(BookOrder bookOrder) {
+		jmsTemplate.convertAndSend(BOOK_QUEUE, bookOrder);
 	}
 
 ```
+
+How to test?
+Note: in this project, we removed WarehouseReceiverService.java to avoid any stand-by reading to test transaction management method
+
+Step 1. Ensure that your ApacheMQ and application are running.
+
+Step 2. Add order via web app for book starts with 'L'
+
+Step 3. Check in the ApacheMQ dashboard, you'll see the following screenshot

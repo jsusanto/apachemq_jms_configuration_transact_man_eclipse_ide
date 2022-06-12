@@ -1,5 +1,7 @@
 package com.linkedinjms.chapter4.service.jms;
 
+import javax.management.RuntimeErrorException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,13 @@ public class WarehouseReceiver {
     public void receive(BookOrder bookOrder){
         LOGGER.info("Message received!");
         LOGGER.info("Message is == " + bookOrder);
+        
+        //Force exception to test the Transaction Manager approach
+        if(bookOrder.getBook().getTitle().startsWith("L")) {
+        	throw new RuntimeException("OrderId=" + bookOrder.getBookOrderId() + 
+        			", Book begins with L is not allowed");
+        }
+        
         warehouseProcessingService.processOrder(bookOrder);
     }
 }
